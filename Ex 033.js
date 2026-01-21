@@ -27,5 +27,20 @@
 //       }
 //     ],
 //     "codeExamples": [
-//       "factorial(5)   // 120\nfactorial(0)   // 1\nfactorial(7)   // 5040"
+//       "factorial(5)   // 120
+//       factorial(0)   // 1
+//       factorial(7)   // 5040"
 //
+
+function factorial(nombre) {
+    if (nombre === 0) return 1;
+    let result = 1;
+    for (let i = 1; i <= nombre; i++) {
+        result *= i;
+    }
+    return result;
+}
+
+console.log(`La factorielle de 5 est : ${factorial(5)}`);
+console.log(`La factorielle de 0 est : ${factorial(0)}`);
+console.log(`La factorielle de 7 est : ${factorial(7)}`);
