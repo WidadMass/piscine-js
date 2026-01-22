@@ -1,0 +1,21 @@
+{
+  "name": "chat-web-ai",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "react": "^18",
+    "react-dom": "^18",
+    "next": "14.1.0",
+    "@prisma/client": "^5.10.0",
+    "groq-sdk": "^0.3.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.10.0"
+  }
+}
