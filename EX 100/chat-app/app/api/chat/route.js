@@ -1,20 +1,25 @@
 import { NextResponse } from 'next/server';
-import { getMessages, createMessage, getAIResponse } from '../../../backend/services/chatService';
+import { getMessages, createMessage, getAIResponse, deleteMessages } from '../../../backend/services/chatService';
 
 export async function GET() {
   const messages = await getMessages();
   return NextResponse.json(messages);
 }
 
+export async function DELETE() {
+  await deleteMessages();
+  return NextResponse.json({ success: true });
+}
+
 export async function POST(request) {
   try {
-    const { message } = await request.json();
+    const { message, username } = await request.json();
 
     if (!message || !message.trim()) {
       return NextResponse.json({ error: 'Message vide' }, { status: 400 });
     }
 
-    await createMessage('user', message);
+    await createMessage('user', message, username);
 
     const aiResponseContent = await getAIResponse(message);
 

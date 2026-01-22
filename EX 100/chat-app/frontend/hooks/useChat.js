@@ -4,7 +4,7 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-export function useChat() {
+export function useChat(user = null) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -33,6 +33,7 @@ export function useChat() {
       id: `tmp-u-${Date.now()}`,
       role: "user",
       content,
+      username: user ? user.username : null,
       createdAt: nowIso(),
     };
 
@@ -52,11 +53,16 @@ export function useChat() {
     abortRef.current = controller;
 
     try {
+      const body = { message: content };
+      if (user && user.username) {
+        body.username = user.username;
+      }
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
@@ -95,7 +101,7 @@ export function useChat() {
       setIsSending(false);
       abortRef.current = null;
     }
-  }, [input, isSending]);
+  }, [input, isSending, user]);
 
   const onKeyDown = useCallback(
     (e) => {
@@ -108,6 +114,20 @@ export function useChat() {
     [canSend, send]
   );
 
+  const clearHistory = useCallback(async () => {
+    if (!globalThis.confirm("Voulez-vous vraiment effacer tout l'historique ?")) return;
+    
+    try {
+      setIsSending(true);
+      await fetch('/api/chat', { method: 'DELETE' });
+      setMessages([]);
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+    } finally {
+      setIsSending(false);
+    }
+  }, []);
+
   return {
     messages,
     input,
@@ -117,5 +137,6 @@ export function useChat() {
     error,
     send,
     onKeyDown,
+    clearHistory,
   };
 }

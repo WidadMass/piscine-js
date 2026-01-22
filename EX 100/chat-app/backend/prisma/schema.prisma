@@ -12,4 +12,11 @@ model Message {
   role      String
   content   String
   createdAt DateTime @default(now())
+  username  String?  @default("Anonyme") // Pour savoir qui a écrit
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  username String   @unique
+  password String
 }

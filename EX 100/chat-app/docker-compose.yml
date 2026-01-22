@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      # On s'assure que la DB pointe bien vers le volume monté
+      - DATABASE_URL=file:../../data/app.db
