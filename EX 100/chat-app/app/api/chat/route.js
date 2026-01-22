@@ -20,7 +20,10 @@ export async function POST(request) {
 
     const aiMessage = await createMessage('assistant', aiResponseContent);
 
-    return NextResponse.json(aiMessage);
+    return NextResponse.json({
+      reply: aiMessage.content,
+      ...aiMessage
+    });
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
