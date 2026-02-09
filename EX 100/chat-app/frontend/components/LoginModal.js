@@ -7,13 +7,15 @@ export default function LoginModal({ onClose }) {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [mode, setMode] = useState('login'); // 'login' ou 'register'
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
-      await login(username, password);
-      onClose(); // Fermer la modale après succès
+      await login(username, password, mode);
+      onClose();
     } catch (err) {
       setError(err.message);
     }
@@ -22,8 +24,12 @@ export default function LoginModal({ onClose }) {
   return (
     <div className="modal-overlay">
       <div className="modal">
-        <h2>Connexion / Inscription</h2>
-        <p>Veuillez vous identifier pour participer.</p>
+        <h2>{mode === 'login' ? 'Connexion' : 'Inscription'}</h2>
+        <p>
+          {mode === 'login' 
+            ? 'Veuillez vous identifier pour participer.' 
+            : 'Créez un compte pour rejoindre la conversation.'}
+        </p>
         
         {error && <div className="error-message">{error}</div>}
 
@@ -50,9 +56,29 @@ export default function LoginModal({ onClose }) {
 
           <div className="modal-actions">
             <button type="button" onClick={onClose} className="cancel-btn">Annuler</button>
-            <button type="submit" className="login-btn">Connexion / Inscription</button>
+            <button type="submit" className="login-btn">
+              {mode === 'login' ? 'Se connecter' : "S'inscrire"}
+            </button>
           </div>
         </form>
+
+        <div className="toggle-mode">
+          {mode === 'login' ? (
+            <p>
+              Pas encore de compte ?{' '}
+              <button className="link-btn" onClick={() => setMode('register')}>
+                Créer un compte
+              </button>
+            </p>
+          ) : (
+             <p>
+              Déjà un compte ?{' '}
+              <button className="link-btn" onClick={() => setMode('login')}>
+                Se connecter
+              </button>
+            </p>
+          )}
+        </div>
       </div>
 
       <style jsx>{`
@@ -67,12 +93,20 @@ export default function LoginModal({ onClose }) {
         }
         .modal {
           background: white;
-          color: #333; /* Force text color to dark */
+          color: #333;
           padding: 2rem;
           border-radius: 8px;
           width: 90%;
           max-width: 400px;
           box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .error-message {
+          color: #d32f2f;
+          background: #ffebee;
+          padding: 8px;
+          border-radius: 4px;
+          margin-bottom: 1rem;
+          font-size: 0.9rem;
         }
         .form-group {
           margin-bottom: 1rem;
@@ -107,16 +141,31 @@ export default function LoginModal({ onClose }) {
           cursor: pointer;
         }
         .cancel-btn {
-          background: transparent;
-          border: 1px solid #ccc;
+          background: #f5f5f5;
+          color: #333;
           padding: 8px 16px;
+          border: 1px solid #ddd;
           border-radius: 4px;
           cursor: pointer;
         }
-        .error-message {
-          color: red;
-          margin-bottom: 1rem;
+        .toggle-mode {
+          margin-top: 1.5rem;
+          text-align: center;
           font-size: 0.9rem;
+          border-top: 1px solid #eee;
+          padding-top: 1rem;
+        }
+        .link-btn {
+          background: none;
+          border: none;
+          color: #0070f3;
+          text-decoration: underline;
+          cursor: pointer;
+          font-size: inherit;
+          padding: 0;
+        }
+        .link-btn:hover {
+          color: #0056b3;
         }
       `}</style>
     </div>

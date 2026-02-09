@@ -15,26 +15,29 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = async (username, password) => {
+  const login = async (username, password, mode = 'login') => {
     const res = await fetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, mode }),
     });
 
     if (!res.ok) {
       const data = await res.json();
-      throw new Error(data.error || 'Erreur de connexion');
+      throw new Error(data.error || 'Erreur d\'authentification');
     }
 
-    const userData = await res.json();
-    setUser(userData);
-    localStorage.setItem('chat_user', JSON.stringify(userData));
+    const { user, token } = await res.json();
+    setUser(user);
+    // On stocke le token ET l'utilisateur
+    localStorage.setItem('chat_token', token);
+    localStorage.setItem('chat_user', JSON.stringify(user));
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('chat_user');
+    localStorage.removeItem('chat_token');
   };
 
   return (

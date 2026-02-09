@@ -1,29 +1,67 @@
 import prisma from '../lib/prisma';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
-// Création d'un User si besoin
-export async function loginOrRegister(username, password) {
-  try {
-    let user = await prisma.user.findUnique({
-      where: { username },
-    });
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+const PEPPER = process.env.PEPPER_SECRET || 'dev_pepper';
 
-    if (!user) {
-      // Inscription automatique simplifiée pour l'exercice
-      user = await prisma.user.create({
-        data: { username, password },
-      });
-    } else {
-      // Vérification mot de passe basique
-      if (user.password !== password) {
-        throw new Error('Mot de passe incorrect');
-      }
-    }
-    
-    // On ne renvoie pas le mot de passe
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
-  } catch (error) {
-    console.error("Auth Error:", error);
-    throw error;
+export async function register(username, password) {
+  const existingUser = await prisma.user.findUnique({
+    where: { username },
+  });
+
+  if (existingUser) {
+    throw new Error('Cet utilisateur existe déjà.');
   }
+
+  // Ajout du "Pepper" au mot de passe avant hashage
+  const saltedPassword = password + PEPPER;
+  const hashedPassword = await bcrypt.hash(saltedPassword, 10);
+
+  const user = await prisma.user.create({
+    data: {
+      username,
+      password: hashedPassword,
+    },
+  });
+
+  const { password: _, ...userWithoutPassword } = user;
+  
+  // Génération du Token JWT
+  const token = jwt.sign(
+    { id: user.id, username: user.username },
+    JWT_SECRET,
+    { expiresIn: '7d' } // Valable 7 jours
+  );
+
+  return { user: userWithoutPassword, token };
+}
+
+export async function login(username, password) {
+  const user = await prisma.user.findUnique({
+    where: { username },
+  });
+
+  if (!user) {
+    throw new Error('Utilisateur inconnu.');
+  }
+
+  // Vérification avec le Pepper
+  const saltedPassword = password + PEPPER;
+  const isValid = await bcrypt.compare(saltedPassword, user.password);
+
+  if (!isValid) {
+    throw new Error('Mot de passe incorrect.');
+  }
+
+  const { password: _, ...userWithoutPassword } = user;
+
+  // Génération du Token JWT
+  const token = jwt.sign(
+    { id: user.id, username: user.username },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  return { user: userWithoutPassword, token };
 }

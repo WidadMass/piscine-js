@@ -1,9 +1,10 @@
 import prisma from '../lib/prisma';
-import Groq from 'groq-sdk';
+import OpenAI from 'openai';
 
-// On utilise une clé vide par défaut pour le build
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || 'dummy_key_for_build', 
+// Configuration pour Grok (xAI)
+const openai = new OpenAI({
+  apiKey: process.env.XAI_API_KEY || 'dummy_key',
+  baseURL: 'https://api.x.ai/v1',
 });
 
 export async function getMessages() {
@@ -78,14 +79,14 @@ export async function getAIResponse(userMessage) {
        messagesToSend.push({ role: 'user', content: userMessage });
     }
 
-    const chatCompletion = await groq.chat.completions.create({
+    const completion = await openai.chat.completions.create({
       messages: messagesToSend,
-      model: 'llama-3.1-8b-instant',
+      model: 'grok-4-latest',
     });
 
-    return chatCompletion.choices[0]?.message?.content || "Désolé, je n'ai pas pu générer de réponse.";
+    return completion.choices[0]?.message?.content || "Désolé, je n'ai pas pu générer de réponse.";
   } catch (error) {
-    console.error("Erreur Groq:", error);
+    console.error("Erreur Grok (xAI):", error);
     return "Je rencontre des difficultés techniques pour répondre pour le moment.";
   }
 }

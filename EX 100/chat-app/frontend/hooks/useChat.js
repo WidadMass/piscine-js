@@ -58,9 +58,18 @@ export function useChat(user = null) {
         body.username = user.username;
       }
 
+      // Récupération du token pour l'ajouter aux headers
+      const token = localStorage.getItem('chat_token');
+      const headers = { 
+        "Content-Type": "application/json" 
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         signal: controller.signal,
         body: JSON.stringify(body),
       });
