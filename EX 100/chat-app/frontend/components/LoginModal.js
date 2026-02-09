@@ -85,87 +85,131 @@ export default function LoginModal({ onClose }) {
         .modal-overlay {
           position: fixed;
           top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.5);
+          background: rgba(0, 0, 0, 0.7);
+          backdrop-filter: blur(8px);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 1000;
+          animation: fadeIn 0.2s ease-out;
         }
         .modal {
-          background: white;
-          color: #333;
-          padding: 2rem;
-          border-radius: 8px;
+          background: rgba(20, 15, 35, 0.85);
+          color: white;
+          padding: 2.5rem;
+          border-radius: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
           width: 90%;
-          max-width: 400px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+          max-width: 420px;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+          animation: slideUp 0.3s ease-out;
+        }
+        h2 {
+          margin-top: 0;
+          background: linear-gradient(135deg, #a855f7, #e879f9);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          font-size: 1.8rem;
+          text-align: center;
+          margin-bottom: 0.5rem;
+        }
+        p {
+          text-align: center;
+          color: rgba(255, 255, 255, 0.6);
+          margin-bottom: 2rem;
         }
         .error-message {
-          color: #d32f2f;
-          background: #ffebee;
-          padding: 8px;
-          border-radius: 4px;
-          margin-bottom: 1rem;
+          background: rgba(239, 68, 68, 0.2);
+          border: 1px solid rgba(239, 68, 68, 0.4);
+          color: #fca5a5;
+          padding: 0.75rem;
+          border-radius: 12px;
+          margin-bottom: 1.5rem;
+          text-align: center;
           font-size: 0.9rem;
         }
         .form-group {
-          margin-bottom: 1rem;
+          margin-bottom: 1.25rem;
         }
-        label {
+        .form-group label {
           display: block;
-          margin-bottom: 5px;
-          font-weight: 500;
-          color: #333;
+          margin-bottom: 0.5rem;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.8);
         }
         input {
           width: 100%;
-          padding: 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          margin-top: 4px;
-          color: #333;
-          background: #fff;
+          padding: 0.75rem 1rem;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.05);
+          color: white;
+          font-size: 1rem;
+          transition: all 0.2s;
+        }
+        input:focus {
+          outline: none;
+          border-color: #a855f7;
+          background: rgba(255, 255, 255, 0.1);
+          box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
         }
         .modal-actions {
           display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-          margin-top: 1.5rem;
+          gap: 1rem;
+          margin-top: 2rem;
         }
-        .login-btn {
-          background: #0070f3;
-          color: white;
-          padding: 8px 16px;
+        button {
+          flex: 1;
+          padding: 0.75rem;
+          border-radius: 12px;
           border: none;
-          border-radius: 4px;
+          font-size: 1rem;
+          font-weight: 600;
           cursor: pointer;
+          transition: transform 0.1s;
+        }
+        button:active {
+          transform: scale(0.98);
         }
         .cancel-btn {
-          background: #f5f5f5;
-          color: #333;
-          padding: 8px 16px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          cursor: pointer;
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: rgba(255, 255, 255, 0.8);
+        }
+        .cancel-btn:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+        .login-btn {
+          background: linear-gradient(135deg, #7c3aed, #a855f7);
+          color: white;
+        }
+        .login-btn:hover {
+          opacity: 0.9;
         }
         .toggle-mode {
           margin-top: 1.5rem;
           text-align: center;
           font-size: 0.9rem;
-          border-top: 1px solid #eee;
-          padding-top: 1rem;
         }
         .link-btn {
           background: none;
           border: none;
-          color: #0070f3;
+          color: #e879f9;
+          padding: 0;
+          font: inherit;
           text-decoration: underline;
           cursor: pointer;
-          font-size: inherit;
-          padding: 0;
         }
         .link-btn:hover {
-          color: #0056b3;
+          color: #f0abfc;
+        }
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
       `}</style>
     </div>
