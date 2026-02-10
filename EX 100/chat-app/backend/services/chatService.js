@@ -30,9 +30,20 @@ export async function deleteMessages() {
 export async function createMessage(role, content, username = null) {
   try {
     const data = { role, content };
+    
+    // Gestion du username et de la relation User
     if (username) {
       data.username = username;
+      
+      // Si c'est un message utilisateur, on essaie de lier à la table User
+      if (role === 'user') {
+        const user = await prisma.user.findUnique({ where: { username } });
+        if (user) {
+          data.user = { connect: { id: user.id } };
+        }
+      }
     }
+
     return await prisma.message.create({
       data,
     });

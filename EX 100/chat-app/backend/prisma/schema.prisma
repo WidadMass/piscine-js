@@ -12,11 +12,18 @@ model Message {
   role      String
   content   String
   createdAt DateTime @default(now())
-  username  String?  @default("Anonyme") // Pour savoir qui a écrit
+  username  String?  @default("Anonyme") // Pour savoir qui a écrit (Legacy ou IA)
+  
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  username String   @unique
-  password String
+  id       Int       @id @default(autoincrement())
+  username String    @unique
+  password String?   // Optionnel pour les utilisateurs Google
+  googleId String?   @unique
+  googleEmail String? @unique
+  avatar   String?
+  messages Message[]
 }

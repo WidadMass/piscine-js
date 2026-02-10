@@ -34,6 +34,12 @@ export function AuthProvider({ children }) {
     localStorage.setItem('chat_user', JSON.stringify(user));
   };
 
+  const loginWithToken = (user, token) => {
+    setUser(user);
+    localStorage.setItem('chat_token', token);
+    localStorage.setItem('chat_user', JSON.stringify(user));
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('chat_user');
@@ -41,7 +47,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, loginWithToken, logout }}>
       {children}
     </AuthContext.Provider>
   );

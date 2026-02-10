@@ -1,11 +1,31 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import ChatWindow from "../frontend/components/ChatWindow";
 import Composer from "../frontend/components/Composer";
 import LoginModal from "../frontend/components/LoginModal";
 import { useChat } from "../frontend/hooks/useChat";
 import { useAuth } from "../frontend/hooks/useAuth";
+import { useRouter, useSearchParams } from 'next/navigation';
+
+// Composant séparé pour gérer le retour Google
+function GoogleAuthHandler() {
+  const { loginWithToken } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const username = searchParams.get('username');
+
+    if (token && username) {
+      loginWithToken({ username }, token);
+      router.replace('/');
+    }
+  }, [searchParams, router, loginWithToken]);
+
+  return null;
+}
 
 export default function HomePage() {
   const { user, logout } = useAuth();
@@ -34,6 +54,10 @@ export default function HomePage() {
 
   return (
     <div className="container">
+      <Suspense fallback={null}>
+        <GoogleAuthHandler />
+      </Suspense>
+      
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
       
       <div className="header">

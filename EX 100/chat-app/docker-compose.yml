@@ -11,12 +11,17 @@ services:
       - db
     restart: on-failure
     command: >
-      sh -c "echo 'Waiting for DB port...'; until nc -z db 5432; do sleep 1; done; echo 'DB port open, waiting 10s for startup...'; sleep 10; npx prisma db push --schema=backend/prisma/schema.prisma && npm start"
+      sh -c "echo 'Waiting for DB port...'; until nc -z db 5432; do sleep 1; done; echo 'DB port open, waiting 10s for startup...'; sleep 10; npx prisma db push --accept-data-loss --schema=backend/prisma/schema.prisma && npm start"
     environment:
       - XAI_API_KEY=${XAI_API_KEY}
       
       - JWT_SECRET=${JWT_SECRET}
       - PEPPER_SECRET=${PEPPER_SECRET}
+      
+      # Google Auth
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      
       # Connection string pour PostgreSQL
 
       - DATABASE_URL=postgresql://postgres:password@db:5432/chatapp
@@ -28,5 +33,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=chatapp
+    ports:
+      - "5432:5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
