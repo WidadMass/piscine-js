@@ -4,7 +4,7 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-export function useChat(user = null) {
+export function useChat(user = null, conversationId = null, onNewConversation = null) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -22,12 +22,26 @@ export function useChat(user = null) {
     };
   }, []);
 
-  // Réinitialiser les messages si l'utilisateur change (ex: déconnexion)
+  // Charger les messages quand la conversation change
   useEffect(() => {
     if (!user) {
       setMessages([]);
+      return;
     }
-  }, [user]);
+
+    if (conversationId) {
+      // Charger messages de la conversation
+      // setIsSending(true); // Pas bloquant
+      fetch(`/api/conversations/${conversationId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setMessages(data);
+        })
+        .catch(err => console.error(err));
+    } else {
+      setMessages([]); // Nouvelle conversation vide
+    }
+  }, [conversationId, user]);
 
   const send = useCallback(async () => {
     const content = input.trim();
@@ -48,7 +62,7 @@ export function useChat(user = null) {
     const tempAssistantMsg = {
       id: `tmp-a-${Date.now() + 1}`,
       role: "assistant",
-      content: "…",
+      content: "...",
       createdAt: nowIso(),
       _pending: true,
     };
@@ -63,6 +77,9 @@ export function useChat(user = null) {
       const body = { message: content };
       if (user && user.username) {
         body.username = user.username;
+      }
+      if (conversationId) {
+        body.conversationId = conversationId;
       }
 
       // Récupération du token pour l'ajouter aux headers
@@ -92,6 +109,11 @@ export function useChat(user = null) {
 
       const data = await res.json();
 
+      // Si c'était une nouvelle conv, on notifie le parent
+      if (!conversationId && data.conversationId && onNewConversation) {
+        onNewConversation(data.conversationId);
+      }
+      
       // Si le backend renvoie l'historique complet
       if (Array.isArray(data?.messages)) {
         setMessages(data.messages);
@@ -100,7 +122,7 @@ export function useChat(user = null) {
         return;
       }
 
-      // Sinon, on remplace juste le "…" par reply
+      // Sinon, on remplace juste le "..." par reply
       const reply = data?.reply ?? "(Pas de réponse)";
       setMessages((prev) =>
         prev.map((m) =>

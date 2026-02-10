@@ -4,7 +4,8 @@ import { useState, useEffect, Suspense } from 'react';
 import ChatWindow from "../frontend/components/ChatWindow";
 import Composer from "../frontend/components/Composer";
 import LoginModal from "../frontend/components/LoginModal";
-import Sidebar from "../frontend/components/Sidebar"; // Import Sidebar
+import Sidebar from "../frontend/components/Sidebar";
+import TemplateSelector from "../frontend/components/TemplateSelector";
 import { useChat } from "../frontend/hooks/useChat";
 import { useAuth } from "../frontend/hooks/useAuth";
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -30,9 +31,59 @@ function GoogleAuthHandler() {
 
 export default function HomePage() {
   const { user, logout } = useAuth();
-  const { messages, input, setInput, isSending, canSend, error, send, onKeyDown, clearHistory } = useChat(user);
+  
+  // États locaux pour gérer les conversations
+  const [conversations, setConversations] = useState([]);
+  const [currentConversationId, setCurrentConversationId] = useState(null);
+  
+  // Fonction pour rafraîchir la liste des conversations
+  const refreshConversations = () => {
+    if (user) {
+      fetch(`/api/conversations?username=${encodeURIComponent(user.username)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setConversations(data);
+        })
+        .catch(console.error);
+    }
+  };
+
+  useEffect(() => {
+    refreshConversations();
+  }, [user]);
+
+  // Callback quand une nouvelle conversation est créée via le chat
+  const handleNewConversation = (id) => {
+    setCurrentConversationId(id);
+    refreshConversations();
+  };
+
+  const { messages, input, setInput, isSending, canSend, error, send, onKeyDown, clearHistory } = useChat(
+    user, 
+    currentConversationId,
+    handleNewConversation
+  );
+
   const [showLogin, setShowLogin] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true); // État pour la sidebar
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Gestion changement de conversation depuis la sidebar
+  const handleSelectChat = (id) => {
+    setCurrentConversationId(id);
+  };
+  
+  const handleNewChat = () => {
+    setCurrentConversationId(null);
+  };
+
+  const handleSelectTemplate = (templateContent) => {
+    setInput(templateContent);
+  };
+
+  // Suppression d'une conversation spécifique (optionnel, pour l'instant on garde clearHistory global ou on adapte)
+  // Pour l'instant clearHistory vide le chat courant dans useChat. 
+  // Idéalement on voudrait supprimer la conversation courante.
 
   // Interception de l'envoi
   const handleSend = () => {
@@ -42,6 +93,7 @@ export default function HomePage() {
     }
     send();
   };
+
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -56,6 +108,12 @@ export default function HomePage() {
 
   return (
     <div className="container">
+      {showTemplates && (
+        <TemplateSelector 
+          onSelectTemplate={handleSelectTemplate}
+          onClose={() => setShowTemplates(false)} 
+        />
+      )}
       <Suspense fallback={null}>
         <GoogleAuthHandler />
       </Suspense>
@@ -65,20 +123,28 @@ export default function HomePage() {
       <div className="layout">
         <Sidebar 
           isOpen={sidebarOpen} 
-          onNewChat={clearHistory}
-          history={[]} /* Pour l'instant vide, à connecter plus tard */
+          onNewChat={handleNewChat}
+          history={conversations}
+          currentId={currentConversationId}
+          onSelectChat={handleSelectChat}
+          onOpenTemplates={() => setShowTemplates(true)}
+          onLogout={logout}
+          user={user}
         />
 
         <div className="main-content">
           <div className="header">
             <div className="brand">
-              <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                ☰
+              <button 
+                className="toggle-sidebar-btn" 
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                title="Afficher/Masquer la sidebar"
+              >
+                |||
               </button>
               <div className="logo" />
               <div className="title">
                 <h1>SuNa-GPT</h1>
-                {user && <span className="subtitle">Bonjour, {user.username}</span>}
               </div>
             </div>
 
@@ -88,12 +154,12 @@ export default function HomePage() {
                   <button 
                     onClick={clearHistory} 
                     className="btn-icon" 
-                    title="Effacer historique"
+                    title="Vider la conversation actuelle"
                   >
-                    🗑️
-                  </button>
-                  <button onClick={logout} className="btn-secondary">
-                    Déconnexion
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
                   </button>
                 </>
               ) : (
@@ -287,6 +353,26 @@ export default function HomePage() {
         .btn-icon:hover {
           background: rgba(220, 38, 38, 0.2);
           transform: scale(1.05);
+        }
+
+        .btn-template {
+          background: rgba(124, 58, 237, 0.15);
+          border: 1px solid rgba(124, 58, 237, 0.3);
+          color: #c4b5fd;
+          padding: 8px 14px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 0.85rem;
+          font-weight: 500;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .btn-template:hover {
+          background: rgba(124, 58, 237, 0.25);
+          border-color: rgba(124, 58, 237, 0.5);
+          transform: translateY(-1px);
         }
       `}</style>
     </div>

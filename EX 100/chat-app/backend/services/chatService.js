@@ -37,7 +37,7 @@ export async function deleteMessages(username = null) {
   }
 }
 
-export async function createMessage(role, content, username = null) {
+export async function createMessage(role, content, username = null, conversationId = null) {
   try {
     const data = { role, content };
     
@@ -54,27 +54,55 @@ export async function createMessage(role, content, username = null) {
       }
     }
 
-    return await prisma.message.create({
+    if (conversationId) {
+      data.conversation = { connect: { id: parseInt(conversationId) } };
+    }
+
+    const message = await prisma.message.create({
       data,
     });
+
+    // Optionnel : Mettre à jour le titre de la conversation si c'est le premier message
+    if (conversationId && role === 'user') {
+      const count = await prisma.message.count({ where: { conversationId: parseInt(conversationId) } });
+      if (count <= 1) {
+        // C'est le premier message, on utilise une version tronquée comme titre
+        const shortTitle = content.substring(0, 30) + (content.length > 30 ? '...' : '');
+        await prisma.conversation.update({
+          where: { id: parseInt(conversationId) },
+          data: { title: shortTitle }
+        });
+      }
+
+      // Toujours mettre à jour updatedAt
+      await prisma.conversation.update({
+         where: { id: parseInt(conversationId) },
+         data: { updatedAt: new Date() }
+      });
+    }
+
+    return message;
   } catch (error) {
     console.error("Erreur DB (createMessage):", error);
     throw new Error('Impossible de sauvegarder le message');
   }
 }
 
-export async function getAIResponse(userMessage, username = null) {
+export async function getAIResponse(userMessage, username = null, conversationId = null) {
   try {
-    // 1. Récupérer les 10 derniers messages pour le contexte
+    // 1. Récupérer le contexte : soit par conversationId (prioritaire), soit par username (legacy)
     const where = {};
-    if (username) {
+    if (conversationId) {
+      where.conversationId = parseInt(conversationId);
+    } else if (username) {
       where.username = username;
     }
 
+    // On récupère moins de messages pour ne pas saturer le contexte
     const lastMessages = await prisma.message.findMany({
       where,
-      take: 10,
-      orderBy: { createdAt: 'desc' }, // On prend les plus récents
+      take: 20, 
+      orderBy: { createdAt: 'desc' }, 
     });
 
     // 2. Les remettre dans l'ordre chronologique et format Groq
@@ -83,20 +111,15 @@ export async function getAIResponse(userMessage, username = null) {
       content: msg.content
     }));
 
-    // 3. Ajouter le message système et le nouveau message utilisateur (qui n'est pas encore en DB quand on appelle cette fonction, ou on pourrait l'ajouter avant)
-    // Note: Dans route.js, on sauvegarde le userMessage AVANT d'appeler getAIResponse.
-    // Donc il est PEUT-ÊTRE déjà dans lastMessages si on ne fait pas attention.
-    // Vérifions route.js: await createMessage('user', message); PUIS getAIResponse(message).
-    // Donc le dernier message en DB EST le message actuel.
-    // Cependant, pour éviter les doublons ou confusions, on va construire le prompt explicitement.
-    
-    // Pour être propre : on prend l'historique *précédent* le message actuel.
-    // Mais le plus simple avec l'API "chat" est d'envoyer toute la conversation.
+    // SYSTEM PROMPT optimisé pour CV professionnel
+    const { getSystemPromptForCV } = await import('./cvTemplates.js');
+    const systemPrompt = getSystemPromptForCV();
     
     const messagesToSend = [
-      { role: 'system', content: 'Tu es un assistant utile et concis en français. Tu as accès à l\'historique de la conversation ci-dessous.' },
+      { role: 'system', content: systemPrompt },
       ...history
     ];
+
 
     // Si le dernier message de l'historique n'est PAS le message actuel (cas de latence d'écriture), on l'ajoute. 
     // Mais comme on a fait await createMessage, il DEVRAIT y être.

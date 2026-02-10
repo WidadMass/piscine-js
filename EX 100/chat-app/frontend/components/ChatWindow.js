@@ -12,7 +12,7 @@ export default function ChatWindow({ messages }) {
     return (
       <div className="messages empty">
         <div className="hint">
-          <div className="hint-icon">💬</div>
+          <div className="hint-icon">[ NOUVELLE CONVERSATION ]</div>
           <h3>Commencer la conversation</h3>
           <p>Écrivez un message ci-dessous pour démarrer.</p>
           <div className="shortcuts">
@@ -43,9 +43,11 @@ export default function ChatWindow({ messages }) {
             backdrop-filter: blur(10px);
           }
           .hint-icon {
-            font-size: 40px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #c4b5fd;
             margin-bottom: 20px;
-            opacity: 0.8;
+            letter-spacing: 2px;
           }
           h3 {
             margin: 0 0 10px;

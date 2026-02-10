@@ -7,17 +7,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Message {
-  id        Int      @id @default(autoincrement())
-  role      String
-  content   String
-  createdAt DateTime @default(now())
-  username  String?  @default("Anonyme") // Pour savoir qui a écrit (Legacy ou IA)
-  
-  userId    Int?
-  user      User?    @relation(fields: [userId], references: [id])
-}
-
 model User {
   id       Int       @id @default(autoincrement())
   username String    @unique
@@ -26,4 +15,31 @@ model User {
   googleEmail String? @unique
   avatar   String?
   messages Message[]
+  conversations Conversation[]
+}
+
+model Conversation {
+  id        Int       @id @default(autoincrement())
+  title     String    @default("Nouvelle conversation")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+  
+  messages  Message[]
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+  username  String?  @default("Anonyme") 
+  
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+
+  conversationId Int?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 }
