@@ -1,11 +1,13 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     // Vérifier si un utilisateur est déjà stocké
@@ -44,6 +46,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     localStorage.removeItem('chat_user');
     localStorage.removeItem('chat_token');
+    router.refresh();
   };
 
   return (

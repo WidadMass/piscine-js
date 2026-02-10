@@ -22,6 +22,13 @@ export function useChat(user = null) {
     };
   }, []);
 
+  // Réinitialiser les messages si l'utilisateur change (ex: déconnexion)
+  useEffect(() => {
+    if (!user) {
+      setMessages([]);
+    }
+  }, [user]);
+
   const send = useCallback(async () => {
     const content = input.trim();
     if (!content || isSending) return;

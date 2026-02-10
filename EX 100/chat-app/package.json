@@ -11,13 +11,12 @@
   "dependencies": {
     "@prisma/client": "^5.10.0",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.3",
+    "jsonwebtoken": "^9.0.2",
     "next": "^16.1.6",
     "openai": "^4.0.0",
     "react": "^18",
     "react-dom": "^18",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2"
+    "react-markdown": "^10.1.0"
   },
   "devDependencies": {
     "prisma": "^5.10.0"

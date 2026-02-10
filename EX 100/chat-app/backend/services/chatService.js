@@ -7,9 +7,15 @@ const openai = new OpenAI({
   baseURL: 'https://api.x.ai/v1',
 });
 
-export async function getMessages() {
+export async function getMessages(username = null) {
   try {
+    const where = {};
+    if (username) {
+      where.username = username;
+    }
+    
     return await prisma.message.findMany({
+      where,
       orderBy: { createdAt: 'asc' },
     });
   } catch (error) {
@@ -18,9 +24,13 @@ export async function getMessages() {
   }
 }
 
-export async function deleteMessages() {
+export async function deleteMessages(username = null) {
   try {
-    return await prisma.message.deleteMany({});
+    const where = {};
+    if (username) {
+      where.username = username;
+    }
+    return await prisma.message.deleteMany({ where });
   } catch (error) {
     console.error("Erreur DB (deleteMessages):", error);
     throw new Error('Impossible de supprimer les messages');
@@ -53,10 +63,16 @@ export async function createMessage(role, content, username = null) {
   }
 }
 
-export async function getAIResponse(userMessage) {
+export async function getAIResponse(userMessage, username = null) {
   try {
     // 1. Récupérer les 10 derniers messages pour le contexte
+    const where = {};
+    if (username) {
+      where.username = username;
+    }
+
     const lastMessages = await prisma.message.findMany({
+      where,
       take: 10,
       orderBy: { createdAt: 'desc' }, // On prend les plus récents
     });

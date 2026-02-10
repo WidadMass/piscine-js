@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import ChatWindow from "../frontend/components/ChatWindow";
 import Composer from "../frontend/components/Composer";
 import LoginModal from "../frontend/components/LoginModal";
+import Sidebar from "../frontend/components/Sidebar"; // Import Sidebar
 import { useChat } from "../frontend/hooks/useChat";
 import { useAuth } from "../frontend/hooks/useAuth";
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -31,6 +32,7 @@ export default function HomePage() {
   const { user, logout } = useAuth();
   const { messages, input, setInput, isSending, canSend, error, send, onKeyDown, clearHistory } = useChat(user);
   const [showLogin, setShowLogin] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // État pour la sidebar
 
   // Interception de l'envoi
   const handleSend = () => {
@@ -60,64 +62,83 @@ export default function HomePage() {
       
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
       
-      <div className="header">
-        <div className="brand">
-          <div className="logo" />
-          <div className="title">
-            <h1>SuNa-GPT</h1>
-            {user && <span className="subtitle">Bonjour, {user.username}</span>}
-          </div>
-        </div>
-
-        <div className="actions">
-          {user ? (
-            <>
-              <button 
-                onClick={clearHistory} 
-                className="btn-icon" 
-                title="Effacer historique"
-              >
-                🗑️
-              </button>
-              <button onClick={logout} className="btn-secondary">
-                Déconnexion
-              </button>
-            </>
-          ) : (
-            <button onClick={() => setShowLogin(true)} className="btn-primary">
-              Connexion
-            </button>
-          )}
-          
-          <div className="pill">
-            <span className="dot" />
-            <span>{isSending ? "..." : "Prêt"}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="shell chatWrap">
-        <ChatWindow messages={messages} />
-        <Composer
-          value={input}
-          onChange={setInput}
-          onSend={handleSend}
-          onKeyDown={handleKeyDown}
-          // On ne désactive pas, mais on intercepte
-          disabled={isSending} 
-          error={error}
-          placeholder={user ? "Écrivez un message..." : "Connectez-vous pour parler..."}
+      <div className="layout">
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          onNewChat={clearHistory}
+          history={[]} /* Pour l'instant vide, à connecter plus tard */
         />
+
+        <div className="main-content">
+          <div className="header">
+            <div className="brand">
+              <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                ☰
+              </button>
+              <div className="logo" />
+              <div className="title">
+                <h1>SuNa-GPT</h1>
+                {user && <span className="subtitle">Bonjour, {user.username}</span>}
+              </div>
+            </div>
+
+            <div className="actions">
+              {user ? (
+                <>
+                  <button 
+                    onClick={clearHistory} 
+                    className="btn-icon" 
+                    title="Effacer historique"
+                  >
+                    🗑️
+                  </button>
+                  <button onClick={logout} className="btn-secondary">
+                    Déconnexion
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => setShowLogin(true)} className="btn-primary">
+                  Connexion
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="shell chatWrap">
+            <ChatWindow messages={messages} />
+            <Composer
+              value={input}
+              onChange={setInput}
+              onSend={handleSend}
+              onKeyDown={handleKeyDown}
+              disabled={isSending} 
+              error={error}
+              placeholder={user ? "Écrivez un message..." : "Connectez-vous pour parler..."}
+            />
+          </div>
+        </div>
       </div>
 
       <style jsx>{`
         .container {
-          max-width: 1000px;
-          margin: 0 auto;
+          height: 100vh;
           display: flex;
           flex-direction: column;
-          height: 100vh;
+        }
+
+        .layout {
+          display: flex;
+          height: 100%;
+          overflow: hidden;
+        }
+
+        .main-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
           padding: 20px;
+          height: 100%;
+          position: relative;
         }
 
         .header {
@@ -131,6 +152,21 @@ export default function HomePage() {
           border-radius: 20px;
           margin-bottom: 20px;
           box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+          flex-shrink: 0;
+        }
+
+        .toggle-sidebar-btn {
+          background: transparent;
+          border: none;
+          color: rgba(255,255,255,0.7);
+          font-size: 1.5rem;
+          cursor: pointer;
+          margin-right: 15px;
+          padding: 5px;
+          border-radius: 8px;
+        }
+        .toggle-sidebar-btn:hover {
+          background: rgba(255,255,255,0.1);
         }
 
         .brand {
@@ -198,13 +234,13 @@ export default function HomePage() {
           backdrop-filter: blur(10px);
           overflow: hidden;
           position: relative;
+          min-height: 0;
         }
 
         .chatWrap {
           flex: 1;
           display: flex;
           flex-direction: column;
-          min-height: 0; /* Important for flex scrolling */
         }
 
         .btn-primary {
