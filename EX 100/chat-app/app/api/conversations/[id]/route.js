@@ -3,7 +3,7 @@ import prisma from '../../../../backend/lib/prisma';
 
 // GET: Récupérer les messages d'une conversation spécifique
 export async function GET(request, { params }) {
-  const { id } = params;
+  const { id } = await params;
   const conversationId = parseInt(id);
 
   if (isNaN(conversationId)) {
@@ -25,7 +25,7 @@ export async function GET(request, { params }) {
 
 // DELETE: Supprimer une conversation
 export async function DELETE(request, { params }) {
-  const { id } = params;
+  const { id } = await params;
   const conversationId = parseInt(id);
 
   try {

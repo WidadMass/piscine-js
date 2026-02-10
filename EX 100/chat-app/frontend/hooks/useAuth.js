@@ -46,7 +46,8 @@ export function AuthProvider({ children }) {
     setUser(null);
     localStorage.removeItem('chat_user');
     localStorage.removeItem('chat_token');
-    router.refresh();
+    // Force un rechargement complet pour nettoyer tout l'état de l'application
+    window.location.href = '/';
   };
 
   return (

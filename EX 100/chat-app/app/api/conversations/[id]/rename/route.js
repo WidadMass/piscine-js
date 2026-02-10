@@ -4,7 +4,7 @@ import prisma from '../../../../../backend/lib/prisma';
 // PATCH: Renommer une conversation
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { title } = await request.json();
     
     if (!title || !title.trim()) {

@@ -31,18 +31,20 @@
     if (chats.length === 0) return null;
     return (
       <div className="history-group">
-        <div className="section-title">{title}</div>
+        <h3 className="section-title">{title}</h3>
         {chats.map((chat) => (
-          <button 
-            key={chat.id} 
-            className={`history-item ${currentId === chat.id ? 'active' : ''}`}
-            onClick={() => onSelectChat && onSelectChat(chat.id)}
-            type="button"
-          >
-            <div className="item-content">
-              <span className="text">{chat.title || "Nouvelle conversation"}</span>
-            </div>
-          </button>
+          <div key={chat.id} className="history-item-wrapper">
+            <button 
+              className={`history-item ${currentId === chat.id ? 'active' : ''}`}
+              onClick={() => onSelectChat && onSelectChat(chat.id)}
+              type="button"
+            >
+              <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" className="chat-icon" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span className="text-truncate">{chat.title || "Nouvelle conversation"}</span>
+            </button>
+          </div>
         ))}
       </div>
     );
@@ -78,14 +80,16 @@
 
       <div className="sidebar-footer">
         {user && (
-          <div className="user-profile">
-            <div className="avatar-mini">{user.username.charAt(0).toUpperCase()}</div>
-            <div className="user-name">{user.username}</div>
-          </div>
+          <>
+            <div className="user-profile">
+              <div className="avatar-mini">{user.username.charAt(0).toUpperCase()}</div>
+              <div className="user-name">{user.username}</div>
+            </div>
+            <button className="logout-btn" onClick={onLogout}>
+              Déconnexion
+            </button>
+          </>
         )}
-        <button className="logout-btn" onClick={onLogout}>
-          Déconnexion
-        </button>
       </div>
 
       <style jsx>{`
@@ -170,13 +174,21 @@
         }
 
         .section-title {
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.4);
-          margin-bottom: 10px;
-          padding-left: 8px;
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.5);
+          margin-bottom: 8px;
+          padding-left: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         
+        .history-item-wrapper {
+          display: block;
+          width: 100%;
+          margin-bottom: 4px;
+        }
+
         .history-item {
           width: 100%;
           text-align: left;
@@ -186,11 +198,13 @@
           border-radius: 8px;
           color: rgba(255, 255, 255, 0.8);
           cursor: pointer;
-          transition: background 0.2s;
-          display: block;
-          margin-bottom: 2px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          align-items: center;
+          gap: 12px;
           overflow: hidden;
           outline: none;
+          position: relative;
         }
         
         .history-item:hover {
@@ -199,23 +213,53 @@
         }
         
         .history-item.active {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(124, 58, 237, 0.15);
           color: white;
-          font-weight: 500;
+          border-left: 3px solid #7c3aed;
+          padding-left: 9px; /* Compensate border */
         }
 
-        .item-content {
-          display: flex;
-          align-items: center;
-          gap: 8px;
+        .chat-icon {
+          flex-shrink: 0;
+          opacity: 0.6;
+          transition: opacity 0.2s;
+        }
+        
+        .history-item:hover .chat-icon,
+        .history-item.active .chat-icon {
+          opacity: 1;
         }
 
-        .text {
+        .text-truncate {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
           flex: 1;
           font-size: 0.9rem;
+          line-height: 1.2;
+        }
+
+        /* Custom Scrollbar */
+        .history-list {
+          flex: 1;
+          overflow-y: auto;
+          padding: 14px;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+        }
+
+        .history-list::-webkit-scrollbar {
+          width: 4px;
+        }
+        .history-list::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .history-list::-webkit-scrollbar-thumb {
+          background-color: rgba(255, 255, 255, 0.1);
+          border-radius: 4px;
+        }
+        .history-list::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(255, 255, 255, 0.2);
         }
 
         .sidebar-footer {

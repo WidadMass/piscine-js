@@ -31,7 +31,7 @@ export function useChat(user = null, conversationId = null, onNewConversation = 
 
     if (conversationId) {
       // Charger messages de la conversation
-      // setIsSending(true); // Pas bloquant
+      setMessages([]); // Reset pour feedback visuel immédiat
       fetch(`/api/conversations/${conversationId}`)
         .then(res => res.json())
         .then(data => {

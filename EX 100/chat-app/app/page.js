@@ -49,7 +49,12 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    refreshConversations();
+    if (user) {
+      refreshConversations();
+    } else {
+      setConversations([]);
+      setCurrentConversationId(null);
+    }
   }, [user]);
 
   // Callback quand une nouvelle conversation est créée via le chat
