@@ -2,14 +2,25 @@
 
 import { xai } from '@/lib/ai';
 
-export async function generateQuiz(jobDescription: string) {
+export async function generateQuiz(jobDescription: string, numberOfQuestions: number = 5) {
   try {
     const prompt = `
-      Tu es un expert en recrutement technique. Génère un quiz d'évaluation pour un candidat basé sur la description de poste suivante.
+      Tu es un expert en recrutement technique senior.
+      Ton objectif est de créer un test technique PERTINENT et CIBLÉ pour ce poste spécifique.
       
-      Description du poste : "${jobDescription}"
+      Analyse d'abord la description du poste pour identifier :
+      1. Le niveau de séniorité attendu (Junior, Confirmé, Senior).
+         - Si Junior : Questions sur les fondamentaux et la syntaxe.
+         - Si Confirmé : Questions sur les bonnes pratiques, pièges courants et performance.
+         - Si Senior : Questions d'architecture, scalabilité, sécurité et system design.
+      2. Les technologies critiques (ex: React, Node, AWS, Python, SQL).
       
-      Génère 5 questions techniques variées (QCM et questions ouvertes).
+      Description du poste : 
+      "${jobDescription}"
+      
+      Génère ${numberOfQuestions} questions techniques (mix QCM et questions ouvertes) qui vérifient la compétence réelle.
+      Évite les questions triviales ("C'est quoi HTML?"). Privilégie des snippets de code à analyser ou des cas pratiques.
+      
       Le format de sortie DOIT être un objet JSON valide, sans markdown, avec la structure suivante :
       {
         "questions": [

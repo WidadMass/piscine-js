@@ -9,6 +9,7 @@ export default function CreateJobPage() {
   const router = useRouter();
   const [jobTitle, setJobTitle] = useState('');
   const [jobDescription, setJobDescription] = useState('');
+  const [questionCount, setQuestionCount] = useState(5);
   const [quiz, setQuiz] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -17,7 +18,7 @@ export default function CreateJobPage() {
     if (!jobDescription) return;
     setLoading(true);
     try {
-      const result = await generateQuiz(jobDescription);
+      const result = await generateQuiz(jobDescription, questionCount);
       setQuiz(result);
     } catch (error) {
       alert("Erreur lors de la génération. Veuillez vérifier votre clé API.");
@@ -84,6 +85,19 @@ export default function CreateJobPage() {
                     onChange={(e) => setJobDescription(e.target.value)}
                   />
                   <p className="text-xs text-gray-400 mt-1">Plus la description est précise, plus le quiz sera pertinent.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de questions</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                    value={questionCount}
+                    onChange={(e) => setQuestionCount(Number(e.target.value))}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">L'IA générera ce nombre de questions pour évaluer les candidats (max 20).</p>
                 </div>
 
                 <div className="pt-2">

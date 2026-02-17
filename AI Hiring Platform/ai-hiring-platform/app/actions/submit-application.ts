@@ -3,53 +3,11 @@
 import { createClient } from '@/lib/supabase-server';
 import { xai } from '@/lib/ai';
 
-// Polyfill pour DOMMatrix nécessaire pour certaines versions de pdf-parse/pdfjs-dist
-if (typeof global.DOMMatrix === 'undefined') {
-  // @ts-ignore
-  global.DOMMatrix = class DOMMatrix {
-    constructor() { return this; }
-    transformPoint(p: any) { return p; }
-    toString() { return "[object DOMMatrix]"; }
-  };
-}
-
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-
-let pdfParse: any;
-
-try {
-  // Tentative avec require classique
-  pdfParse = require('pdf-parse');
-} catch (e) {
-  console.error("Erreur require pdf-parse:", e);
-}
-
-if (typeof pdfParse !== 'function') {
-  // Tentative forcée de trouver la fonction d'export
-  if (pdfParse?.default && typeof pdfParse.default === 'function') {
-     pdfParse = pdfParse.default;
-  } else {
-     // On cherche n'importe quelle propriété qui est une fonction
-     const funcKey = Object.keys(pdfParse || {}).find(key => typeof pdfParse[key] === 'function');
-     if (funcKey) {
-        pdfParse = pdfParse[funcKey];
-     }
-  }
-}
-
-// Fallback ultime si l'import initial échoue silencieusement
-if (typeof pdfParse !== 'function') {
-  try {
-    const defaultExport = require('pdf-parse');
-    if (typeof defaultExport === 'function') {
-       pdfParse = defaultExport;
-    } else if (defaultExport && typeof defaultExport.default === 'function') {
-       pdfParse = defaultExport.default;
-    }
-  } catch (err) {
-    console.error("Impossible de charger pdf-parse via require:", err);
-  }
+// --- Extraction PDF avec pdf-parse 1.1.1 ---
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  const pdfParse = (await import('pdf-parse')).default;
+  const data = await pdfParse(buffer);
+  return (data.text || '').trim();
 }
 
 export async function submitApplication(formData: FormData) {
@@ -69,47 +27,15 @@ export async function submitApplication(formData: FormData) {
   const buffer = Buffer.from(arrayBuffer);
   let resumeText = "";
 
-  if (typeof pdfParse !== 'function') {
-    console.error("pdf-parse n'a pas pu être chargé correctement. Type:", typeof pdfParse);
-    // On tente un dernier require désespéré
-    try {
-      // @ts-ignore
-      const directRequire = require('pdf-parse');
-      if (typeof directRequire === 'function') pdfParse = directRequire;
-      else if (directRequire?.default) pdfParse = directRequire.default;
-    } catch (e) {
-      console.error("Echec du require de secours:", e);
-    }
-  }
-
-  if (typeof pdfParse !== 'function') {
-    throw new Error(`La bibliothèque d'analyse PDF n'est pas disponible (type: ${typeof pdfParse}). Veuillez contacter le support.`);
-  }
-
   try {
-    const data = await pdfParse(buffer);
-    resumeText = data.text;
-  } catch (error: any) {
-    console.error("Erreur lecture PDF (version standard):", error);
-    
-    // Si l'erreur est liée à 'new', cela signifie qu'on a affaire à une classe et non une fonction
-    if (error.message && error.message.includes("Class constructor")) {
-        try {
-            // @ts-ignore
-            const instance = new pdfParse(buffer);
-            // Parfois l'instance a besoin d'une méthode 'text' ou 'parse'
-            if (instance.text) resumeText = instance.text;
-            else if (typeof instance.then === 'function') { // C'est une promesse
-                const res = await instance;
-                resumeText = res.text;
-            }
-        } catch (clsError) {
-             console.error("Erreur lecture PDF (mode classe):", clsError);
-             throw new Error(`Impossible de lire le fichier PDF: ${error.message}`);
-        }
-    } else {
-        throw new Error(`Impossible de lire le fichier PDF: ${error.message}`);
+    resumeText = await extractTextFromPDF(buffer);
+    console.log(`[DEBUG] PDF Text extracted: ${resumeText.length} chars`);
+    if (!resumeText || resumeText.trim().length < 20) {
+      console.warn("[DEBUG] PDF text too short or empty!");
     }
+  } catch (error: any) {
+    console.error("Erreur lecture PDF:", error);
+    throw new Error(`Impossible de lire le fichier PDF: ${error.message}`);
   }
 
   // 2. Récupérer les détails du poste pour l'IA
@@ -119,67 +45,148 @@ export async function submitApplication(formData: FormData) {
      throw new Error("Offre non trouvée");
   }
 
-  // 3. Analyser le CV avec l'IA (Grok) pour avoir un score
+  // 3. Analyser le CV avec l'IA (Grok) - Analyse avancée structurée
   let score = 0;
   let analysis = "";
+  let advancedAnalysis: any = null;
 
   try {
     const prompt = `
-      Tu es un recruteur expert. Analyse ce CV par rapport à la description du poste.
-      
-      Poste : ${job.title}
-      Description : ${job.description}
-      
-      Contenu du CV :
-      "${resumeText.substring(0, 3000)}" // On limite pour éviter de dépasser les tokens
-      
-      Tâche :
-      1. Donne un score de pertinence de 0 à 100.
-      2. Explique brièvement pourquoi en 2 phrases.
-      
-      Format de réponse attendu (JSON uniquement) :
-      {
-        "score": 85,
-        "reason": "Le candidat possède les compétences clés React et Node.js..."
-      }
-    `;
+Tu es un expert ATS (Applicant Tracking System) senior. Effectue une analyse DÉTAILLÉE et STRUCTURÉE de ce CV par rapport au poste.
+
+IMPORTANT : Le texte du CV a été extrait automatiquement d'un PDF. Il peut contenir des espaces en trop, des caractères spéciaux ou un formatage étrange — c'est NORMAL. Concentre-toi sur le CONTENU et le SENS, pas sur la mise en forme.
+
+=== POSTE ===
+Titre : ${job.title}
+Description : "${job.description}"
+
+=== CV DU CANDIDAT (texte brut extrait du PDF) ===
+"${resumeText.substring(0, 12000)}"
+
+=== INSTRUCTIONS ===
+
+Étape 1 : Identifie 5 à 8 compétences clés exigées par le poste (techniques ET soft skills).
+Étape 2 : Pour chaque compétence, vérifie si elle est présente dans le CV. Attribue un statut :
+  - "OK" = Compétence clairement démontrée dans le CV
+  - "PARTIEL" = Compétence partiellement présente ou dans un contexte différent
+  - "ABSENT" = Aucune trace de cette compétence dans le CV
+Étape 3 : Compare l'expérience requise (en années) avec celle du candidat.
+Étape 4 : Liste les points forts et les points faibles du candidat par rapport au poste.
+Étape 5 : Calcule un score global de 0 à 100 qui reflète l'adéquation RÉELLE du candidat :
+  - 80-100 = Excellent match, candidat idéal
+  - 60-79 = Bon profil, quelques lacunes mineures
+  - 40-59 = Profil moyen, lacunes significatives
+  - 20-39 = Faible adéquation, beaucoup de compétences manquantes
+  - 0-19 = Aucune adéquation avec le poste
+
+Le score DOIT refléter le contenu réel du CV. Un profil qui correspond bien doit avoir un score élevé (60+). Un profil hors sujet doit avoir un score bas (<30).
+
+=== FORMAT DE RÉPONSE (JSON strict, pas de markdown) ===
+{
+  "score": 72,
+  "summary": "Résumé en 2-3 phrases de l'adéquation globale du profil.",
+  "skills": [
+    {
+      "name": "Nom de la compétence",
+      "status": "OK",
+      "comment": "Explication courte de pourquoi ce statut"
+    }
+  ],
+  "experience": {
+    "required": "3 ans",
+    "candidate": "5 ans",
+    "observations": [
+      { "text": "Observation positive sur l'expérience", "type": "positive" },
+      { "text": "Observation négative ou manque", "type": "negative" }
+    ]
+  },
+  "strengths": [
+    "Point fort 1",
+    "Point fort 2"
+  ],
+  "weaknesses": [
+    "Point faible 1",
+    "Point faible 2"
+  ]
+}
+`;
 
     const completion = await xai.chat.completions.create({
-      model: "grok-beta",
+      model: "grok-2-latest",
       messages: [
-        { role: "system", content: "You extract data and score candidates in JSON format only." },
+        { role: "system", content: "Tu es un expert en recrutement. Tu analyses des CV et tu réponds UNIQUEMENT en JSON valide, sans aucun markdown ni texte supplémentaire." },
         { role: "user", content: prompt }
       ],
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(completion.choices[0].message.content || "{}");
-    score = result.score || 0;
-    analysis = result.reason || "";
+    console.log("[DEBUG] AI Raw Response:", completion.choices[0].message.content?.substring(0, 200));
+    
+    const rawContent = completion.choices[0].message.content || "{}";
+    let result;
+    try {
+        result = JSON.parse(rawContent);
+    } catch (e) {
+        console.error("[DEBUG] JSON Parse error:", e);
+        const cleanContent = rawContent.replace(/```json/g, "").replace(/```/g, "").trim();
+        try {
+            result = JSON.parse(cleanContent);
+        } catch (e2) {
+             console.error("[DEBUG] Second JSON Parse failed:", e2);
+             result = {};
+        }
+    }
+
+    score = Number(result.score) || 0;
+    // Garde-fou : si le score vaut 0 mais qu'il y a des skills OK, recalculer
+    if (score === 0 && result.skills && result.skills.length > 0) {
+      const skillsOK = result.skills.filter((s: any) => s.status === 'OK').length;
+      const skillsPartiel = result.skills.filter((s: any) => s.status === 'PARTIEL').length;
+      const totalSkills = result.skills.length;
+      if (totalSkills > 0) {
+        score = Math.round(((skillsOK * 1.0 + skillsPartiel * 0.5) / totalSkills) * 100);
+        console.log(`[DEBUG] Score recalculé depuis skills: ${score} (${skillsOK} OK, ${skillsPartiel} PARTIEL sur ${totalSkills})`);
+      }
+    }
+    // Borner entre 0 et 100
+    score = Math.max(0, Math.min(100, score));
+    
+    analysis = result.summary || "Analyse indisponible";
+    advancedAnalysis = {
+      skills: result.skills || [],
+      experience: result.experience || null,
+      strengths: result.strengths || [],
+      weaknesses: result.weaknesses || []
+    };
+
+    console.log(`[DEBUG] Score: ${score}, Skills found: ${advancedAnalysis.skills.length}`);
 
   } catch (error) {
     console.error("Erreur IA Analysis:", error);
-    // On continue même si l'IA échoue, on mettra score 0
   }
 
-  // 4. Sauvegarder le candidat en base (avec l'analyse IA si possible, sinon juste le texte)
-  // Note: J'ai ajouté une colonne resume_text, on pourrait stocker l'analyse dans une colonne 'ai_feedback' si elle existait, 
-  // pour l'instant on va juste sauver le score.
-  
-  const { error: saveError } = await supabase.from('candidates').insert([
+  // 4. Sauvegarder le candidat en base (avec analyse complète)
+  const { data: savedCandidate, error: saveError } = await supabase.from('candidates').insert([
     {
       job_id: jobId,
       name,
       email,
-      resume_text: resumeText, // On garde le texte brut du CV
-      score: score
+      resume_text: resumeText,
+      score: score,
+      analysis_data: {
+        summary: analysis,
+        skills: advancedAnalysis?.skills || [],
+        experience: advancedAnalysis?.experience || null,
+        strengths: advancedAnalysis?.strengths || [],
+        weaknesses: advancedAnalysis?.weaknesses || []
+      }
     }
-  ]);
+  ]).select().single();
 
   if (saveError) {
     console.error("Erreur sauvegarde candidat:", saveError);
     throw new Error("Erreur lors de l'enregistrement de la candidature");
   }
 
-  return { success: true, score, analysis };
+  return { success: true, score, analysis, advancedAnalysis, candidateId: savedCandidate?.id || null };
 }
