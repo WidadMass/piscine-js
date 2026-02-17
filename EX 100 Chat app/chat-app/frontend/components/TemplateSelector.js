@@ -19,11 +19,11 @@ export default function TemplateSelector({ onSelectTemplate, onClose }) {
       });
   }, []);
 
-  const handleSelect = async (templateId) => {
+  const handleSelect = async (templateId, type = 'cv') => {
     const res = await fetch('/api/templates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ templateId, type: 'cv' })
+      body: JSON.stringify({ templateId, type })
     });
     const data = await res.json();
     onSelectTemplate(data.template);
@@ -42,17 +42,30 @@ export default function TemplateSelector({ onSelectTemplate, onClose }) {
           {loading ? (
             <div className="loading">Chargement...</div>
           ) : (
-            templates.map(template => (
+            <>
+              {/* Option Lettre de Motivation */}
               <div 
-                key={template.id} 
-                className="template-card"
-                onClick={() => handleSelect(template.id)}
+                className="template-card special-card"
+                onClick={() => handleSelect('default', 'lettre')}
               >
-                <div className="template-icon">CV</div>
-                <h3>{template.name}</h3>
-                <p>{template.preview}</p>
+                <div className="template-icon">✉️</div>
+                <h3>Lettre de Motivation</h3>
+                <p>Structure professionnelle VOUS-MOI-NOUS pour candidatures spontanées ou réponses à offre.</p>
               </div>
-            ))
+
+              {/* Templates CV */}
+              {templates.map(template => (
+                <div 
+                  key={template.id} 
+                  className="template-card"
+                  onClick={() => handleSelect(template.id, 'cv')}
+                >
+                  <div className="template-icon">CV</div>
+                  <h3>{template.name}</h3>
+                  <p>{template.preview}</p>
+                </div>
+              ))}
+            </>
           )}
         </div>
 

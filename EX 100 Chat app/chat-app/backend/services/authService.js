@@ -48,6 +48,12 @@ export async function login(username, password) {
 
   // Vérification avec le Pepper
   const saltedPassword = password + PEPPER;
+
+  // Si l'utilisateur n'a pas de mot de passe (ex: compte Google), on refuse l'accès par mot de passe
+  if (!user.password) {
+    throw new Error('Ce compte ne possède pas de mot de passe (Connexion Google ?).');
+  }
+
   const isValid = await bcrypt.compare(saltedPassword, user.password);
 
   if (!isValid) {
@@ -64,4 +70,12 @@ export async function login(username, password) {
   );
 
   return { user: userWithoutPassword, token };
+}
+
+export function verifyToken(token) {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
 }

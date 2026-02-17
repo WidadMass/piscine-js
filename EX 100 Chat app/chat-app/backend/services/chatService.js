@@ -140,3 +140,44 @@ export async function getAIResponse(userMessage, username = null, conversationId
     return "Je rencontre des difficultés techniques pour répondre pour le moment.";
   }
 }
+
+export async function getAIStream(userMessage, username = null, conversationId = null) {
+  try {
+    const where = {};
+    if (conversationId) where.conversationId = parseInt(conversationId);
+    else if (username) where.username = username;
+
+    const lastMessages = await prisma.message.findMany({
+      where,
+      take: 20,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const history = lastMessages.reverse().map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.content
+    }));
+
+    const { getSystemPromptForCV } = await import('./cvTemplates.js');
+    const systemPrompt = getSystemPromptForCV();
+    
+    const messagesToSend = [
+      { role: 'system', content: systemPrompt },
+      ...history
+    ];
+
+    const lastHistoryMsg = history[history.length - 1];
+    if (!lastHistoryMsg || lastHistoryMsg.content !== userMessage) {
+       messagesToSend.push({ role: 'user', content: userMessage });
+    }
+
+    return await openai.chat.completions.create({
+      messages: messagesToSend,
+      model: 'grok-4-latest',
+      stream: true,
+    });
+  } catch (error) {
+    console.error("Erreur Grok Stream:", error);
+    throw error;
+  }
+}

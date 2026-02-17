@@ -63,7 +63,7 @@ export default function HomePage() {
     refreshConversations();
   };
 
-  const { messages, input, setInput, isSending, canSend, error, send, onKeyDown, clearHistory } = useChat(
+  const { messages, input, setInput, isSending, canSend, error, send, onKeyDown: hookOnKeyDown, clearHistory } = useChat(
     user, 
     currentConversationId,
     handleNewConversation
@@ -99,17 +99,16 @@ export default function HomePage() {
     send();
   };
 
-
+  // Interception de la touche Entrée pour vérifier l'authentification
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      if (!user) {
-        e.preventDefault();
-        setShowLogin(true);
-        return;
-      }
+    if (e.key === 'Enter' && !e.shiftKey && !user) {
+      e.preventDefault();
+      setShowLogin(true);
+      return;
     }
-    onKeyDown(e);
+    hookOnKeyDown(e);
   };
+
 
   return (
     <div className="container">

@@ -29,6 +29,10 @@ export function useChat(user = null, conversationId = null, onNewConversation = 
       return;
     }
 
+    // Si on est en train d'envoyer (création de nouvelle conv), on ne recharge pas tout de suite
+    // pour éviter d'effacer les messages en cours de streaming.
+    if (isSending) return;
+
     if (conversationId) {
       // Charger messages de la conversation
       setMessages([]); // Reset pour feedback visuel immédiat
@@ -41,7 +45,7 @@ export function useChat(user = null, conversationId = null, onNewConversation = 
     } else {
       setMessages([]); // Nouvelle conversation vide
     }
-  }, [conversationId, user]);
+  }, [conversationId, user, isSending]);
 
   const send = useCallback(async () => {
     const content = input.trim();
@@ -98,42 +102,59 @@ export function useChat(user = null, conversationId = null, onNewConversation = 
         body: JSON.stringify(body),
       });
 
-      if (!res.ok) {
-        let txt = "Erreur serveur.";
-        try {
-          const data = await res.json();
-          if (data?.error) txt = data.error;
-        } catch {}
-        throw new Error(txt);
-      }
+      if (!res.ok) throw new Error("Erreur serveur");
 
-      const data = await res.json();
+      // Gestion du streaming
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let streamedResponse = "";
+      let isFirstChunk = true;
 
-      // Si c'était une nouvelle conv, on notifie le parent
-      if (!conversationId && data.conversationId && onNewConversation) {
-        onNewConversation(data.conversationId);
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        let textToAdd = chunk;
+
+        // Traitement du header JSON spécial
+        if (isFirstChunk) {
+            const parts = chunk.split("\n__JSON_END__\n");
+            if (parts.length > 1) {
+                try {
+                    const meta = JSON.parse(parts[0]);
+                    if (!conversationId && meta.conversationId && onNewConversation) {
+                        onNewConversation(meta.conversationId);
+                    }
+                    textToAdd = parts[1]; // Le reste est du texte
+                } catch (e) { console.error("Error parsing meta", e); }
+            }
+            isFirstChunk = false;
+        }
+
+        streamedResponse += textToAdd;
+
+        setMessages((prev) =>
+            prev.map((m) =>
+            m._pending ? { ...m, content: streamedResponse } : m
+            )
+        );
       }
       
-      // Si le backend renvoie l'historique complet
-      if (Array.isArray(data?.messages)) {
-        setMessages(data.messages);
-        setIsSending(false);
-        abortRef.current = null;
-        return;
-      }
-
-      // Sinon, on remplace juste le "..." par reply
-      const reply = data?.reply ?? "(Pas de réponse)";
+      // Finalisation
       setMessages((prev) =>
         prev.map((m) =>
-          m._pending ? { ...m, content: reply, _pending: false } : m
+          m._pending ? { ...m, content: streamedResponse, _pending: false } : m
         )
       );
 
       setIsSending(false);
       abortRef.current = null;
     } catch (e) {
-      // On retire le message pending et on garde le message user (optionnel)
+      if (e.name === 'AbortError') return;
+      // On retire le message pending et on garde le message user
       setMessages((prev) => prev.filter((m) => !m._pending));
       setError(e?.message || "Erreur réseau.");
       setIsSending(false);
@@ -155,9 +176,17 @@ export function useChat(user = null, conversationId = null, onNewConversation = 
   const clearHistory = useCallback(async () => {
     if (!globalThis.confirm("Voulez-vous vraiment effacer tout l'historique ?")) return;
     
+    if (!user || !user.username) return;
+
     try {
       setIsSending(true);
-      await fetch('/api/chat', { method: 'DELETE' });
+      const token = localStorage.getItem('chat_token');
+      const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+      await fetch(`/api/chat?username=${encodeURIComponent(user.username)}`, { 
+        method: 'DELETE',
+        headers
+      });
       setMessages([]);
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);

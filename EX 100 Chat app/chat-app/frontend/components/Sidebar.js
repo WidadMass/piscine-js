@@ -1,31 +1,36 @@
-﻿export default function Sidebar({ isOpen, onNewChat, history = [], currentId, onSelectChat, onOpenTemplates, onLogout, user }) {
-  // Organiser par date
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const weekAgo = new Date(today);
-  weekAgo.setDate(weekAgo.getDate() - 7);
+﻿import { useMemo, memo } from 'react';
 
-  const categorized = {
-    today: [],
-    yesterday: [],
-    thisWeek: [],
-    older: []
-  };
+const Sidebar = memo(function Sidebar({ isOpen, onNewChat, history = [], currentId, onSelectChat, onOpenTemplates, onLogout, user }) {
+  // Organiser par date - Memoized pour éviter le recalcul à chaque render
+  const categorized = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
 
-  history.forEach(chat => {
-    const chatDate = new Date(chat.updatedAt || chat.createdAt);
-    if (chatDate >= today) {
-      categorized.today.push(chat);
-    } else if (chatDate >= yesterday) {
-      categorized.yesterday.push(chat);
-    } else if (chatDate >= weekAgo) {
-      categorized.thisWeek.push(chat);
-    } else {
-      categorized.older.push(chat);
-    }
-  });
+    const cats = {
+      today: [],
+      yesterday: [],
+      thisWeek: [],
+      older: []
+    };
+
+    history.forEach(chat => {
+      const chatDate = new Date(chat.updatedAt || chat.createdAt);
+      if (chatDate >= today) {
+        cats.today.push(chat);
+      } else if (chatDate >= yesterday) {
+        cats.yesterday.push(chat);
+      } else if (chatDate >= weekAgo) {
+        cats.thisWeek.push(chat);
+      } else {
+        cats.older.push(chat);
+      }
+    });
+    return cats;
+  }, [history]); // Recalcule uniquement si l'historique change
 
   const renderSection = (title, chats) => {
     if (chats.length === 0) return null;
@@ -35,7 +40,7 @@
         {chats.map((chat) => (
           <div key={chat.id} className="history-item-wrapper">
             <button 
-              className={`history-item ${currentId === chat.id ? 'active' : ''}`}
+              className={`history-item ${String(currentId) === String(chat.id) ? 'active' : ''}`}
               onClick={() => onSelectChat && onSelectChat(chat.id)}
               type="button"
             >
@@ -338,4 +343,6 @@
       `}</style>
     </aside>
   );
-}
+});
+
+export default Sidebar;

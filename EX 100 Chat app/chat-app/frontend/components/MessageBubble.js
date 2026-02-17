@@ -1,8 +1,8 @@
 import ReactMarkdown from 'react-markdown';
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, memo } from 'react';
 import CVPreview from './CVPreview';
 
-export default function MessageBubble({ message }) {
+const MessageBubble = memo(function MessageBubble({ message }) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const contentRef = useRef(null);
@@ -193,7 +193,7 @@ export default function MessageBubble({ message }) {
       <div className={`bubble ${isUser ? "userBubble" : "assistantBubble"} ${cvData ? 'cv-bubble' : ''}`}>
         {!isUser && !cvData && (
           <div className="bubble-header">
-            <span className="model-name">Gemini Pro</span>
+            <span className="model-name">SuNa -GPT</span>
             <div className="action-buttons">
               <button className="action-btn" onClick={handleCopy} title="Copier le texte">
                 {copied ? <span className="icon-check">✓</span> : <span className="icon-copy">📋</span>}
@@ -334,7 +334,10 @@ export default function MessageBubble({ message }) {
         .message-content {
           line-height: 1.6;
           font-size: 0.95rem;
-          width: 100%; /* Fix width */
+          width: 100%;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          word-break: break-word;
         }
         .message-content :global(p) { margin: 0 0 0.8em 0; }
         .message-content :global(h1) {
@@ -381,6 +384,8 @@ export default function MessageBubble({ message }) {
           border-radius: 4px;
           font-family: monospace;
           font-size: 0.9em;
+          white-space: pre-wrap;
+          word-break: break-all;
         }
         .message-content :global(pre) {
           background: rgba(0,0,0,0.2);
@@ -388,10 +393,13 @@ export default function MessageBubble({ message }) {
           border-radius: 8px;
           overflow-x: auto;
           margin: 0.5em 0;
+          max-width: 100%;
         }
         .message-content :global(pre code) {
           background: transparent;
           padding: 0;
+          white-space: pre;
+          word-break: normal;
         }
         .time {
           font-size: 0.7rem;
@@ -404,4 +412,6 @@ export default function MessageBubble({ message }) {
       `}</style>
     </div>
   );
-}
+});
+
+export default MessageBubble;

@@ -18,7 +18,9 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "node.js": "^0.0.1-security"
-  },
-  "devDependencies": {}
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
+    "node.js": "^0.0.1-security",
+    "openai": "^6.18.0"
+  }
 }
