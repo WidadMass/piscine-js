@@ -34,10 +34,13 @@ export default function CreateJobPage() {
 
      setSaving(true);
      try {
-       await saveJobAndQuiz(jobTitle, jobDescription, quiz);
-       router.push('/dashboard/recruiter');
-     } catch(err) {
-       alert("Erreur lors de la sauvegarde");
+       const result = await saveJobAndQuiz(jobTitle, jobDescription, quiz);
+       if (result.success) {
+         router.push('/dashboard/recruiter');
+       }
+     } catch(err: any) {
+       console.error("Erreur client save:", err);
+       alert(`Erreur lors de la sauvegarde: ${err.message}`);
      } finally {
        setSaving(false);
      }

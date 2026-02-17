@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { submitApplication } from '@/app/actions/submit-application';
 
-export default function ApplyPage({ params }: { params: { jobId: string } }) {
+export default function ApplyPage({ params }: { params: Promise<{ jobId: string }> }) {
+  const { jobId } = use(params);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<{ score: number, analysis: string } | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -13,7 +15,7 @@ export default function ApplyPage({ params }: { params: { jobId: string } }) {
     setLoading(true);
     
     const formData = new FormData(event.currentTarget);
-    formData.append('jobId', params.jobId); // On ajoute l'ID du job depuis l'URL
+    formData.append('jobId', jobId); // On ajoute l'ID du job depuis l'URL
 
     try {
       const result = await submitApplication(formData);
@@ -21,8 +23,9 @@ export default function ApplyPage({ params }: { params: { jobId: string } }) {
         setSuccess(true);
         setAiResult({ score: result.score, analysis: result.analysis });
       }
-    } catch (error) {
-      alert("Une erreur est survenue lors de l'envoi.");
+    } catch (error: any) {
+      console.error(error);
+      alert(`Erreur lors de l'envoi : ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -84,11 +87,27 @@ export default function ApplyPage({ params }: { params: { jobId: string } }) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">CV (PDF uniquement)</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
-                <input name="resume" required type="file" accept=".pdf" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+              <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer relative ${fileName ? 'border-violet-500 bg-violet-50' : 'border-gray-300 hover:bg-gray-50'}`}>
+                <input 
+                  name="resume" 
+                  required 
+                  type="file" 
+                  accept=".pdf" 
+                  onChange={(e) => setFileName(e.target.files?.[0]?.name || null)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                />
                 <div className="text-gray-500">
-                  <p className="text-sm font-medium">Cliquez pour uploader</p>
-                  <p className="text-xs">Format PDF uniquement (max 5MB)</p>
+                  {fileName ? (
+                    <>
+                      <p className="text-sm font-bold text-violet-700">{fileName}</p>
+                      <p className="text-xs text-violet-500">Fichier sélectionné</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium">Cliquez pour uploader</p>
+                      <p className="text-xs">Format PDF uniquement (max 5MB)</p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
